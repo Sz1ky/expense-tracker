@@ -4,4 +4,8 @@
 
 <script setup></script>
 
-<style scoped></style>
+<style>
+  * {
+    font-family: monospace;
+  }
+</style>

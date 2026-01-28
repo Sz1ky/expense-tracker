@@ -1,3 +1,8 @@
-<template>Dashboard works!</template>
-<script setup></script>
+<template>
+  <Navbar />
+  Dashboard works!
+</template>
+<script setup>
+  import Navbar from "./Navbar.vue";
+</script>
 <style scoped></style>
