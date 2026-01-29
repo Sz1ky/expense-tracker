@@ -2,7 +2,36 @@
   <div class="dashboard">
     <main class="dashboard-main">
       <Navbar />
-      <!-- Summary Cards... -->
+      <!-- Summary Cards Section -->
+      <section class="summary-section">
+        <h1 class="dashboard-title">Expense Overview</h1>
+        <div class="summary-cards-grid">
+          <!-- Card 1: Total Spent -->
+          <SummaryCard
+            label="Total Spent"
+            value="$2,450.00"
+            trend="-5%"
+            :trend-type="'negative'"
+            description="from last month"
+          />
+
+          <!-- Card 2: Budget Remaining -->
+          <SummaryCard
+            label="Budget Remaining"
+            value="$1,550.00"
+            trend="+12%"
+            :trend-type="'positive'"
+            description="budget health"
+          />
+
+          <!-- Card 3: Top Category -->
+          <SummaryCard
+            label="Top Category"
+            value="Dining Out"
+            description="32% of total spending"
+          />
+        </div>
+      </section>
 
       <!-- Expense List Section -->
       <section class="expenses-section">
@@ -12,8 +41,10 @@
     </main>
   </div>
 </template>
+
 <script setup>
   import Navbar from "./Navbar.vue";
+  import SummaryCard from "../cards/SummaryCard.vue";
   import ExpenseList from "../expenses/ExpenseList.vue";
 
   const expensesData = [
@@ -54,6 +85,7 @@
     },
   ];
 </script>
+
 <style scoped>
   .dashboard {
     min-height: 100vh;
@@ -68,6 +100,26 @@
     width: 100%;
     margin: 0 auto;
     padding: 2rem 1.5rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.025em;
+  }
+
+  .summary-section {
+    margin-bottom: 3rem;
+    margin-top: 50px;
+  }
+
+  .summary-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .expenses-section {
