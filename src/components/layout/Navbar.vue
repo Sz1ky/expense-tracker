@@ -90,6 +90,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    border-radius: 16px;
   }
 
   .navbar-left,
