@@ -39,13 +39,20 @@
         <ExpenseList :expenses="expensesData" />
       </section>
     </main>
+
+    <!-- Floating Action Button -->
+    <AddExpenseButton @click="showAddExpense = true" />
   </div>
 </template>
 
 <script setup>
+  import { ref } from "vue";
   import Navbar from "./Navbar.vue";
   import SummaryCard from "../cards/SummaryCard.vue";
   import ExpenseList from "../expenses/ExpenseList.vue";
+  import AddExpenseButton from "../expenses/AddExpenseButton.vue";
+
+  const showAddExpense = ref(false);
 
   const expensesData = [
     {
