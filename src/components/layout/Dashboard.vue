@@ -9,7 +9,7 @@
           <!-- Card 1: Total Spent -->
           <SummaryCard
             label="Total Spent"
-            value="$2,450.00"
+            value="€2,450.00"
             trend="-5%"
             :trend-type="'negative'"
             description="from last month"
@@ -18,7 +18,7 @@
           <!-- Card 2: Budget Remaining -->
           <SummaryCard
             label="Budget Remaining"
-            value="$1,550.00"
+            value="€1,550.00"
             trend="+12%"
             :trend-type="'positive'"
             description="budget health"
@@ -42,6 +42,13 @@
 
     <!-- Floating Action Button -->
     <AddExpenseButton @click="showAddExpense = true" />
+
+    <!-- Add Expense Modal -->
+    <AddExpense
+      v-if="showAddExpense"
+      @close="showAddExpense = false"
+      @save="handleSaveExpense"
+    />
   </div>
 </template>
 
@@ -51,10 +58,11 @@
   import SummaryCard from "../cards/SummaryCard.vue";
   import ExpenseList from "../expenses/ExpenseList.vue";
   import AddExpenseButton from "../expenses/AddExpenseButton.vue";
+  import AddExpense from "../modals/AddExpense.vue";
 
   const showAddExpense = ref(false);
 
-  const expensesData = [
+  const expensesData = ref([
     {
       id: 1,
       name: "Starbucks",
@@ -90,7 +98,39 @@
       category: "health",
       amount: 250.0,
     },
-  ];
+  ]);
+
+  // Handle new expense from modal
+  function handleSaveExpense(newExpenseData) {
+    // Create a new expense object
+    const newExpense = {
+      id: expensesData.value.length + 1,
+      name: newExpenseData.note || "Unnamed Expense",
+      date: formatExpenseDate(newExpenseData.date),
+      category: newExpenseData.category,
+      amount: newExpenseData.amount,
+    };
+
+    // Add to the beginning of the array (most recent first)
+    expensesData.value.unshift(newExpense);
+
+    console.log("✅ Expense added:", newExpense);
+
+    // In real app:
+    // 1. Send to API
+    // 2. Update summary cards
+    // 3. Refresh data
+  }
+
+  // Format date
+  function formatExpenseDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
 </script>
 
 <style scoped>

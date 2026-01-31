@@ -103,6 +103,14 @@
     background-color: #ec4899;
   }
 
+  .category-shopping {
+    background-color: #f59e0b;
+  }
+
+  .category-entertainment {
+    background-color: #06b6d4;
+  }
+
   .expense-info {
     display: flex;
     flex-direction: column;
