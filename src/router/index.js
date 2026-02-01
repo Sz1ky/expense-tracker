@@ -1,3 +1,4 @@
+import ForgotPassword from "@/components/auth/ForgotPassword.vue";
 import Login from "@/components/auth/Login.vue";
 import Register from "@/components/auth/Register.vue";
 import Dashboard from "@/components/layout/Dashboard.vue";
@@ -9,6 +10,11 @@ const router = createRouter({
     { path: "/", component: Dashboard, name: "Dashboard" },
     { path: "/login", component: Login, name: "Login" },
     { path: "/register", component: Register, name: "Register" },
+    {
+      path: "/forgot-password",
+      component: ForgotPassword,
+      name: "ForgotPassword",
+    },
   ],
 });
 
