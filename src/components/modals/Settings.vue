@@ -88,10 +88,12 @@
 <script setup>
   import { ref, computed, onMounted } from "vue";
   import { useRouter } from "vue-router";
+  import { useAuthStore } from "@/stores/auth";
 
   const emit = defineEmits(["close", "save", "logout"]);
 
   const router = useRouter();
+  const authStore = useAuthStore();
 
   // Mock user data
   const userData = ref({
@@ -149,9 +151,8 @@
   // Logout
   function handleLogout() {
     if (confirm("Are you sure you want to log out?")) {
-      console.log("Logging out...");
-      emit("logout");
-      router.push("/login");
+      authStore.logout();
+      emit("close");
     }
   }
 

@@ -29,8 +29,28 @@
           Join us and start tracking your expenses effortlessly.
         </p>
 
+        <!-- Error Message -->
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+
+        <!-- Success Message -->
+        <div v-if="success" class="success-message">
+          <svg class="success-icon" viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            />
+          </svg>
+          <p>Account created successfully! Redirecting...</p>
+        </div>
+
         <!-- Form -->
-        <form class="register-form" @submit.prevent="handleRegister">
+        <form
+          v-if="!success"
+          class="register-form"
+          @submit.prevent="handleRegister"
+        >
           <!-- Full Name -->
           <div class="form-group">
             <label class="form-label">Full Name</label>
@@ -40,6 +60,7 @@
               placeholder="John Doe"
               class="form-input"
               required
+              :disabled="isLoading"
             />
           </div>
 
@@ -52,6 +73,7 @@
               placeholder="name@example.com"
               class="form-input"
               required
+              :disabled="isLoading"
             />
           </div>
 
@@ -64,11 +86,14 @@
               placeholder="*********"
               class="form-input"
               required
+              :disabled="isLoading"
+              minlength="6"
             />
             <button
               type="button"
               class="password-toggle"
               @click="showPassword = !showPassword"
+              :disabled="isLoading"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -107,7 +132,10 @@
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="submit-btn">Get Started →</button>
+          <button type="submit" class="submit-btn" :disabled="isLoading">
+            <span v-if="isLoading">Creating Account...</span>
+            <span v-else>Get Started →</span>
+          </button>
 
           <!-- Divider -->
           <div class="divider">
@@ -116,7 +144,11 @@
 
           <!-- Social Login -->
           <div class="social-buttons">
-            <button type="button" class="social-btn google">
+            <button
+              type="button"
+              class="social-btn google"
+              :disabled="isLoading"
+            >
               <svg class="social-icon" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -165,8 +197,10 @@
 <script setup>
   import { ref } from "vue";
   import { useRouter } from "vue-router";
+  import { useAuthStore } from "@/stores/auth";
 
   const router = useRouter();
+  const authStore = useAuthStore();
 
   // Form data
   const form = ref({
@@ -176,14 +210,39 @@
   });
 
   const showPassword = ref(false);
+  const isLoading = ref(false);
+  const error = ref("");
+  const success = ref(false);
 
   // Handle form submission
-  function handleRegister() {
-    console.log("Registering:", form.value);
+  async function handleRegister() {
+    error.value = "";
+    isLoading.value = true;
 
-    // API call for registration later.
-    // For now, just redirect to dashboard
-    router.push("/");
+    // Basic validation
+    if (form.value.password.length < 6) {
+      error.value = "Password must be at least 6 characters long";
+      isLoading.value = false;
+      return;
+    }
+
+    try {
+      // Call auth store register
+      await authStore.register(form.value);
+
+      // Show success message
+      success.value = true;
+
+      // Redirect after a brief delay
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
+    } catch (err) {
+      console.error("Registration error:", err);
+      error.value = err.message || "Registration failed. Please try again.";
+    } finally {
+      isLoading.value = false;
+    }
   }
 </script>
 
@@ -398,5 +457,50 @@
     font-size: 1.125rem;
     opacity: 0.9;
     line-height: 1.6;
+  }
+
+  .error-message {
+    background-color: #fee2e2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    border: 1px solid #fca5a5;
+  }
+
+  .success-message {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #86efac;
+  }
+
+  .success-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .success-message p {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .form-input:disabled,
+  .submit-btn:disabled,
+  .social-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .password-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>

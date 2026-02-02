@@ -100,7 +100,10 @@
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="submit-btn">Sign In</button>
+          <button type="submit" class="submit-btn" :disabled="isLoading">
+            <span v-if="isLoading">Signing in...</span>
+            <span v-else>Sign In</span>
+          </button>
 
           <!-- Register Link -->
           <p class="register-link">
@@ -109,6 +112,11 @@
               >Create an account</router-link
             >
           </p>
+
+          <!-- Add error display -->
+          <div v-if="error" class="error-message">
+            {{ error }}
+          </div>
         </form>
       </div>
     </div>
@@ -130,8 +138,10 @@
 <script setup>
   import { ref } from "vue";
   import { useRouter } from "vue-router";
+  import { useAuthStore } from "@/stores/auth";
 
   const router = useRouter();
+  const authStore = useAuthStore();
 
   // Form data
   const form = ref({
@@ -139,15 +149,23 @@
     password: "",
   });
 
+  const isLoading = ref(false);
+  const error = ref("");
   const showPassword = ref(false);
 
-  // Handle form submission
-  function handleLogin() {
-    console.log("Logging in:", form.value);
+  async function handleLogin() {
+    error.value = "";
+    isLoading.value = true;
 
-    // API call for login later.
-    // For now, just redirect to dashboard
-    router.push("/");
+    try {
+      await authStore.login(form.value);
+      router.push("/");
+    } catch (err) {
+      error.value = "Invalid email or password";
+      console.error("Login error:", err);
+    } finally {
+      isLoading.value = false;
+    }
   }
 </script>
 
@@ -318,5 +336,39 @@
     font-size: 1.125rem;
     opacity: 0.9;
     line-height: 1.6;
+  }
+
+  .error-message {
+    background-color: #fee2e2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .error-message {
+    background-color: #fee2e2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    border: 1px solid #fca5a5;
+  }
+
+  .form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .password-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>
