@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <main class="dashboard-main">
-      <Navbar />
+      <Navbar @open-settings="showSettings = true" />
       <!-- Summary Cards Section -->
       <section class="summary-section">
         <h1 class="dashboard-title">Expense Overview</h1>
@@ -49,6 +49,9 @@
       @close="showAddExpense = false"
       @save="handleSaveExpense"
     />
+
+    <!-- Settings Modal -->
+    <Settings v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
@@ -59,8 +62,10 @@
   import ExpenseList from "../expenses/ExpenseList.vue";
   import AddExpenseButton from "../expenses/AddExpenseButton.vue";
   import AddExpense from "../modals/AddExpense.vue";
+  import Settings from "../modals/Settings.vue";
 
   const showAddExpense = ref(false);
+  const showSettings = ref(false);
 
   const expensesData = ref([
     {

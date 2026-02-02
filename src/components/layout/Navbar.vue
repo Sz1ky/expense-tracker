@@ -33,7 +33,7 @@
 
     <!-- Right: User Avatar -->
     <div class="navbar-right">
-      <div class="user-avatar" @click="openSettings">
+      <div class="user-avatar" @click="$emit('openSettings')">
         <div class="avatar-initials">
           {{ userInitials }}
         </div>
@@ -77,6 +77,13 @@
       .join("")
       .toUpperCase();
   });
+
+  function openSettings() {
+    console.log("Avatar clicked!"); // Check if this appears
+    emit("openSettings");
+  }
+
+  defineEmits(["openSettings"]);
 </script>
 
 <style scoped>
