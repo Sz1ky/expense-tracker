@@ -75,8 +75,10 @@
 
 <script setup>
   import { ref } from "vue";
+  import { useExpenseStore } from "@/stores/expense";
 
   const emit = defineEmits(["close", "save"]);
+  const expenseStore = useExpenseStore();
 
   // Form data
   const form = ref({
@@ -88,11 +90,16 @@
 
   // Handle form submission
   function handleSubmit() {
-    emit("save", {
-      ...form.value,
+    // Create expense data
+    const expenseData = {
       amount: parseFloat(form.value.amount),
-      date: formatDate(form.value.date),
-    });
+      category: form.value.category,
+      date: form.value.date,
+      note: form.value.note,
+    };
+
+    // Save to store
+    expenseStore.addExpense(expenseData);
 
     // Reset form
     form.value = {
@@ -102,17 +109,8 @@
       note: "",
     };
 
+    // Close modal
     emit("close");
-  }
-
-  // Format date for display
-  function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
   }
 
   // Close modal when clicking overlay

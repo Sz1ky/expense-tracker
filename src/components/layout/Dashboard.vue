@@ -1,62 +1,71 @@
 <template>
   <div class="dashboard">
     <main class="dashboard-main">
-      <Navbar @open-settings="showSettings = true" />
-      <!-- Summary Cards Section -->
+      <Navbar
+        @open-settings="showSettings = true"
+        @month-changed="handleMonthChange"
+      />
       <section class="summary-section">
         <h1 class="dashboard-title">Expense Overview</h1>
         <div class="summary-cards-grid">
-          <!-- Card 1: Total Spent -->
+          <!-- Card 1: Total Spent with REAL change percentage -->
           <SummaryCard
             label="Total Spent"
-            value="€2,450.00"
-            trend="-5%"
-            :trend-type="'negative'"
+            :value="'€' + monthlySummary.currentMonthTotal.toFixed(2)"
+            :trend="
+              (monthlySummary.change > 0 ? '+' : '') +
+              monthlySummary.change +
+              '%'
+            "
+            :trend-type="monthlySummary.isPositive ? 'positive' : 'negative'"
             description="from last month"
           />
 
-          <!-- Card 2: Budget Remaining -->
+          <!-- Card 2: Budget Remaining with REAL budget health -->
           <SummaryCard
             label="Budget Remaining"
-            value="€1,550.00"
-            trend="+12%"
-            :trend-type="'positive'"
+            :value="
+              '€' + Math.max(0, monthlySummary.budgetRemaining).toFixed(2)
+            "
+            :trend="
+              (monthlySummary.budgetHealthPercentage > 0 ? '+' : '') +
+              monthlySummary.budgetHealthPercentage +
+              '%'
+            "
+            :trend-type="
+              monthlySummary.budgetHealthPositive ? 'positive' : 'negative'
+            "
             description="budget health"
           />
 
           <!-- Card 3: Top Category -->
           <SummaryCard
             label="Top Category"
-            value="Dining Out"
-            description="32% of total spending"
+            :value="topCategoryName"
+            :description="topCategory.percentage + '% of total spending'"
           />
         </div>
       </section>
 
-      <!-- Expense List Section -->
       <section class="expenses-section">
         <h2>Recent Expenses</h2>
-        <ExpenseList :expenses="expensesData" />
+        <ExpenseList :expenses="filteredExpenses" />
       </section>
     </main>
 
-    <!-- Floating Action Button -->
     <AddExpenseButton @click="showAddExpense = true" />
-
-    <!-- Add Expense Modal -->
     <AddExpense
       v-if="showAddExpense"
       @close="showAddExpense = false"
       @save="handleSaveExpense"
     />
-
-    <!-- Settings Modal -->
     <Settings v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
 <script setup>
-  import { ref } from "vue";
+  import { ref, computed } from "vue";
+  import { useExpenseStore } from "@/stores/expense";
   import Navbar from "./Navbar.vue";
   import SummaryCard from "../cards/SummaryCard.vue";
   import ExpenseList from "../expenses/ExpenseList.vue";
@@ -64,77 +73,158 @@
   import AddExpense from "../modals/AddExpense.vue";
   import Settings from "../modals/Settings.vue";
 
+  // Initialize stores
+  const expenseStore = useExpenseStore();
+
+  // Modal states
   const showAddExpense = ref(false);
   const showSettings = ref(false);
 
-  const expensesData = ref([
-    {
-      id: 1,
-      name: "Starbucks",
-      date: "Jan 24, 2026",
-      category: "dining",
-      amount: 8.75,
-    },
-    {
-      id: 2,
-      name: "Uber Trip",
-      date: "Jan 22, 2026",
-      category: "transport",
-      amount: 24.5,
-    },
-    {
-      id: 3,
-      name: "Whole Foods",
-      date: "Jan 21, 2026",
-      category: "groceries",
-      amount: 86.3,
-    },
-    {
-      id: 4,
-      name: "ConEd Utilities",
-      date: "Jan 19, 2026",
-      category: "bills",
-      amount: 120.0,
-    },
-    {
-      id: 5,
-      name: "Equinox Gym",
-      date: "Jan 15, 2026",
-      category: "health",
-      amount: 250.0,
-    },
-  ]);
+  // Current selected month (default to current month)
+  const selectedMonth = ref(new Date());
+
+  // User's monthly budget (from settings/store)
+  const monthlyBudget = ref(3000); // Default, later from settings
+
+  // Handle month change from navbar
+  function handleMonthChange(newDate) {
+    selectedMonth.value = newDate;
+    console.log(
+      "Month changed to:",
+      newDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    );
+  }
+
+  // Filter expenses by selected month
+  const filteredExpenses = computed(() => {
+    const year = selectedMonth.value.getFullYear();
+    const month = selectedMonth.value.getMonth() + 1;
+
+    return expenseStore.expenses
+      .filter((expense) => {
+        const expenseDate = new Date(expense.date);
+        return (
+          expenseDate.getFullYear() === year &&
+          expenseDate.getMonth() + 1 === month
+        );
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  });
+
+  // Get previous month's expenses for comparison
+  const previousMonthExpenses = computed(() => {
+    const prevMonth = new Date(selectedMonth.value);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+
+    const year = prevMonth.getFullYear();
+    const month = prevMonth.getMonth() + 1;
+
+    return expenseStore.expenses.filter((expense) => {
+      const expenseDate = new Date(expense.date);
+      return (
+        expenseDate.getFullYear() === year &&
+        expenseDate.getMonth() + 1 === month
+      );
+    });
+  });
+
+  // REAL CALCULATIONS for summary cards
+  const monthlySummary = computed(() => {
+    const currentTotal = filteredExpenses.value.reduce(
+      (sum, expense) => sum + expense.amount,
+      0,
+    );
+    const previousTotal = previousMonthExpenses.value.reduce(
+      (sum, expense) => sum + expense.amount,
+      0,
+    );
+
+    // Calculate percentage change
+    let change = 0;
+    if (previousTotal > 0) {
+      change = ((currentTotal - previousTotal) / previousTotal) * 100;
+    } else if (currentTotal > 0) {
+      change = 100; // First month with spending
+    }
+
+    // Calculate budget usage percentage
+    const budgetUsage =
+      monthlyBudget.value > 0 ? (currentTotal / monthlyBudget.value) * 100 : 0;
+    const budgetRemaining = monthlyBudget.value - currentTotal;
+
+    // Budget health: positive if spending less than 80% of budget
+    const budgetHealthPercentage =
+      monthlyBudget.value > 0
+        ? ((monthlyBudget.value - currentTotal) / monthlyBudget.value) * 100
+        : 0;
+
+    return {
+      currentMonthTotal: currentTotal,
+      previousMonthTotal: previousTotal,
+      change: Math.round(change),
+      isPositive: currentTotal <= previousTotal, // Spending less than last month is positive
+      budgetRemaining: budgetRemaining,
+      budgetHealthPercentage: Math.round(budgetHealthPercentage),
+      budgetHealthPositive: budgetRemaining > monthlyBudget.value * 0.2, // More than 20% budget left
+    };
+  });
+
+  // Top category calculation
+  const topCategory = computed(() => {
+    const filtered = filteredExpenses.value;
+    const categories = {};
+
+    filtered.forEach((expense) => {
+      if (!categories[expense.category]) {
+        categories[expense.category] = 0;
+      }
+      categories[expense.category] += expense.amount;
+    });
+
+    let top = null;
+    let maxAmount = 0;
+
+    for (const [category, amount] of Object.entries(categories)) {
+      if (amount > maxAmount) {
+        maxAmount = amount;
+        top = category;
+      }
+    }
+
+    const total = monthlySummary.value.currentMonthTotal;
+
+    return {
+      category: top,
+      amount: maxAmount,
+      percentage: total > 0 ? Math.round((maxAmount / total) * 100) : 0,
+    };
+  });
+
+  // Format category name
+  const topCategoryName = computed(() => {
+    if (!topCategory.value.category) return "None";
+
+    const categoryMap = {
+      dining: "Dining Out",
+      transport: "Transport",
+      groceries: "Groceries",
+      bills: "Bills",
+      health: "Health",
+      shopping: "Shopping",
+      entertainment: "Entertainment",
+    };
+
+    return (
+      categoryMap[topCategory.value.category] ||
+      topCategory.value.category.charAt(0).toUpperCase() +
+        topCategory.value.category.slice(1)
+    );
+  });
 
   // Handle new expense from modal
   function handleSaveExpense(newExpenseData) {
-    // Create a new expense object
-    const newExpense = {
-      id: expensesData.value.length + 1,
-      name: newExpenseData.note || "Unnamed Expense",
-      date: formatExpenseDate(newExpenseData.date),
-      category: newExpenseData.category,
-      amount: newExpenseData.amount,
-    };
-
-    // Add to the beginning of the array (most recent first)
-    expensesData.value.unshift(newExpense);
-
-    console.log("✅ Expense added:", newExpense);
-
-    // In real app:
-    // 1. Send to API
-    // 2. Update summary cards
-    // 3. Refresh data
-  }
-
-  // Format date
-  function formatExpenseDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    expenseStore.addExpense(newExpenseData);
+    console.log("✅ Expense added via store");
   }
 </script>
 

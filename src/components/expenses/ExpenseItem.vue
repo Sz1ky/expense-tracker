@@ -15,7 +15,7 @@
 
     <!-- Right: Date + Amount -->
     <div class="expense-right">
-      <div class="expense-date">{{ expense.date }}</div>
+      <div class="expense-date">{{ expense.displayDate }}</div>
       <div class="expense-amount">€{{ formatAmount(expense.amount) }}</div>
     </div>
   </div>

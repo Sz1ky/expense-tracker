@@ -46,6 +46,7 @@
   import { ref, computed } from "vue";
 
   const currentDate = ref(new Date());
+  const emit = defineEmits(["openSettings", "monthChanged"]);
 
   const currentMonth = computed(() => {
     return currentDate.value.toLocaleDateString("en-US", {
@@ -58,13 +59,14 @@
     const newDate = new Date(currentDate.value);
     newDate.setMonth(newDate.getMonth() - 1);
     currentDate.value = newDate;
-    // Emit this later
+    emit("monthChanged", newDate);
   }
 
   function nextMonth() {
     const newDate = new Date(currentDate.value);
     newDate.setMonth(newDate.getMonth() + 1);
     currentDate.value = newDate;
+    emit("monthChanged", newDate);
   }
 
   // Hardcoded. Later from auth
@@ -77,13 +79,6 @@
       .join("")
       .toUpperCase();
   });
-
-  function openSettings() {
-    console.log("Avatar clicked!"); // Check if this appears
-    emit("openSettings");
-  }
-
-  defineEmits(["openSettings"]);
 </script>
 
 <style scoped>
