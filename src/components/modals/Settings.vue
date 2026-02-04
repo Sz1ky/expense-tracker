@@ -86,33 +86,25 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted } from "vue";
+  import { ref, computed } from "vue";
   import { useRouter } from "vue-router";
   import { useAuthStore } from "@/stores/auth";
+  import { useSettingsStore } from "@/stores/settings";
 
-  const emit = defineEmits(["close", "save", "logout"]);
+  const emit = defineEmits(["close"]);
 
   const router = useRouter();
   const authStore = useAuthStore();
+  const settingsStore = useSettingsStore();
 
-  // Mock user data
+  // Get settings from store
   const userData = ref({
-    name: "John Doe",
-    currency: "EUR",
-    monthlyBudget: 3000,
+    name: authStore.user?.name || "John Doe",
+    currency: settingsStore.settings.currency,
+    monthlyBudget: settingsStore.settings.monthlyBudget,
   });
 
-  // User initials for avatar
-  const userInitials = computed(() => {
-    return userData.value.name
-      .split(" ")
-      .map((word) => word[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  });
-
-  // Currency symbol based on selection
+  // Currency symbol
   const currencySymbol = computed(() => {
     const symbols = {
       USD: "$",
@@ -123,22 +115,26 @@
     return symbols[userData.value.currency] || "€";
   });
 
-  // Load saved settings
-  onMounted(() => {
-    const savedSettings = localStorage.getItem("expenseTrackerSettings");
-    if (savedSettings) {
-      userData.value = { ...userData.value, ...JSON.parse(savedSettings) };
-    }
+  // User initials
+  const userInitials = computed(() => {
+    return userData.value.name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   });
 
-  // Save settings
+  // Save settings - update store
   function saveSettings() {
     console.log("Saving settings:", userData.value);
-    localStorage.setItem(
-      "expenseTrackerSettings",
-      JSON.stringify(userData.value),
-    );
-    emit("save", userData.value);
+
+    // Update settings store
+    settingsStore.updateSettings({
+      currency: userData.value.currency,
+      monthlyBudget: Number(userData.value.monthlyBudget),
+    });
+
     emit("close");
   }
 
@@ -156,7 +152,7 @@
     }
   }
 
-  // Close modal when clicking overlay
+  // Close modal
   function closeModal(event) {
     if (event.target.classList.contains("modal-overlay")) {
       emit("close");

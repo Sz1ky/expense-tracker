@@ -8,10 +8,13 @@
       <section class="summary-section">
         <h1 class="dashboard-title">Expense Overview</h1>
         <div class="summary-cards-grid">
-          <!-- Card 1: Total Spent with REAL change percentage -->
+          <!-- Card 1: Total Spent -->
           <SummaryCard
             label="Total Spent"
-            :value="'€' + monthlySummary.currentMonthTotal.toFixed(2)"
+            :value="
+              settingsStore.currencySymbol +
+              monthlySummary.currentMonthTotal.toFixed(2)
+            "
             :trend="
               (monthlySummary.change > 0 ? '+' : '') +
               monthlySummary.change +
@@ -21,11 +24,13 @@
             description="from last month"
           />
 
-          <!-- Card 2: Budget Remaining with REAL budget health -->
+          <!-- Card 2: Budget Remaining - Only show if budget exists for selected month -->
           <SummaryCard
+            v-if="monthlySummary.hasBudget"
             label="Budget Remaining"
             :value="
-              '€' + Math.max(0, monthlySummary.budgetRemaining).toFixed(2)
+              settingsStore.currencySymbol +
+              Math.max(0, monthlySummary.budgetRemaining).toFixed(2)
             "
             :trend="
               (monthlySummary.budgetHealthPercentage > 0 ? '+' : '') +
@@ -36,6 +41,15 @@
               monthlySummary.budgetHealthPositive ? 'positive' : 'negative'
             "
             description="budget health"
+          />
+
+          <!-- Show alternative card if no budget for selected month -->
+          <SummaryCard
+            v-else
+            label="Budget"
+            value="Not Set"
+            description="Budget not set for this month"
+            trend-type="neutral"
           />
 
           <!-- Card 3: Top Category -->
@@ -66,6 +80,7 @@
 <script setup>
   import { ref, computed } from "vue";
   import { useExpenseStore } from "@/stores/expense";
+  import { useSettingsStore } from "@/stores/settings";
   import Navbar from "./Navbar.vue";
   import SummaryCard from "../cards/SummaryCard.vue";
   import ExpenseList from "../expenses/ExpenseList.vue";
@@ -75,6 +90,7 @@
 
   // Initialize stores
   const expenseStore = useExpenseStore();
+  const settingsStore = useSettingsStore();
 
   // Modal states
   const showAddExpense = ref(false);
@@ -83,8 +99,17 @@
   // Current selected month (default to current month)
   const selectedMonth = ref(new Date());
 
-  // User's monthly budget (from settings/store)
-  const monthlyBudget = ref(3000); // Default, later from settings
+  // Check if selected month has a budget
+  const hasBudgetForSelectedMonth = computed(() => {
+    const yearMonth = selectedMonth.value.toISOString().slice(0, 7); // YYYY-MM
+    return settingsStore.hasBudgetForMonth(yearMonth);
+  });
+
+  // Get budget for selected month (null if no budget)
+  const monthlyBudget = computed(() => {
+    const yearMonth = selectedMonth.value.toISOString().slice(0, 7);
+    return settingsStore.getBudgetForMonth(yearMonth);
+  });
 
   // Handle month change from navbar
   function handleMonthChange(newDate) {
@@ -92,6 +117,8 @@
     console.log(
       "Month changed to:",
       newDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      "Has budget:",
+      hasBudgetForSelectedMonth.value,
     );
   }
 
@@ -147,25 +174,31 @@
       change = 100; // First month with spending
     }
 
-    // Calculate budget usage percentage
-    const budgetUsage =
-      monthlyBudget.value > 0 ? (currentTotal / monthlyBudget.value) * 100 : 0;
-    const budgetRemaining = monthlyBudget.value - currentTotal;
+    // Calculate budget-related metrics only if budget exists for this month
+    let budgetRemaining = null;
+    let budgetHealthPercentage = null;
+    let budgetHealthPositive = null;
 
-    // Budget health: positive if spending less than 80% of budget
-    const budgetHealthPercentage =
-      monthlyBudget.value > 0
-        ? ((monthlyBudget.value - currentTotal) / monthlyBudget.value) * 100
-        : 0;
+    if (monthlyBudget.value !== null) {
+      const budget = monthlyBudget.value;
+      budgetRemaining = budget - currentTotal;
+      budgetHealthPercentage =
+        budget > 0 ? ((budget - currentTotal) / budget) * 100 : 0;
+      budgetHealthPositive = budgetRemaining > budget * 0.2; // More than 20% budget left
+    }
 
     return {
       currentMonthTotal: currentTotal,
       previousMonthTotal: previousTotal,
       change: Math.round(change),
-      isPositive: currentTotal <= previousTotal, // Spending less than last month is positive
+      isPositive: currentTotal <= previousTotal,
       budgetRemaining: budgetRemaining,
-      budgetHealthPercentage: Math.round(budgetHealthPercentage),
-      budgetHealthPositive: budgetRemaining > monthlyBudget.value * 0.2, // More than 20% budget left
+      budgetHealthPercentage:
+        budgetHealthPercentage !== null
+          ? Math.round(budgetHealthPercentage)
+          : null,
+      budgetHealthPositive: budgetHealthPositive,
+      hasBudget: monthlyBudget.value !== null,
     };
   });
 
