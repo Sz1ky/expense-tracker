@@ -181,9 +181,9 @@ export const useExpenseStore = defineStore("expense", () => {
   // Helper function
   function formatDisplayDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
+    return date.toLocaleDateString("en-US", {
       month: "short",
-      day: "numeric",
+      day: "2-digit",
       year: "numeric",
     });
   }

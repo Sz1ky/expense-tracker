@@ -63,11 +63,23 @@
 
       <section class="expenses-section">
         <h2>Recent Expenses</h2>
-        <ExpenseList :expenses="filteredExpenses" />
+
+        <!-- Custom empty state for past months -->
+        <div
+          v-if="isPastMonth && filteredExpenses.length === 0"
+          class="empty-state"
+        >
+          <p>No expenses recorded for this month. Past months are view-only.</p>
+        </div>
+
+        <!-- Regular expense list for non-empty months -->
+        <ExpenseList v-else :expenses="filteredExpenses" />
       </section>
     </main>
 
-    <AddExpenseButton @click="showAddExpense = true" />
+    <!-- Hide floating button for past months -->
+    <AddExpenseButton v-if="!isPastMonth" @click="showAddExpense = true" />
+
     <AddExpense
       v-if="showAddExpense"
       @close="showAddExpense = false"
@@ -99,6 +111,25 @@
   // Current selected month (default to current month)
   const selectedMonth = ref(new Date());
 
+  // Check if selected month is in the past
+  const isPastMonth = computed(() => {
+    const now = new Date();
+    const selected = selectedMonth.value;
+
+    // Compare year and month only (ignore days)
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const selectedYear = selected.getFullYear();
+    const selectedMonthNum = selected.getMonth() + 1; // 1-12
+
+    // Month is past if its year is less than current year,
+    // OR same year but month is less than current month
+    return (
+      selectedYear < currentYear ||
+      (selectedYear === currentYear && selectedMonthNum < currentMonth)
+    );
+  });
+
   // Check if selected month has a budget
   const hasBudgetForSelectedMonth = computed(() => {
     const yearMonth = selectedMonth.value.toISOString().slice(0, 7); // YYYY-MM
@@ -117,8 +148,8 @@
     console.log(
       "Month changed to:",
       newDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      "Has budget:",
-      hasBudgetForSelectedMonth.value,
+      "Is past month:",
+      isPastMonth.value,
     );
   }
 
@@ -256,8 +287,22 @@
 
   // Handle new expense from modal
   function handleSaveExpense(newExpenseData) {
-    expenseStore.addExpense(newExpenseData);
-    console.log("✅ Expense added via store");
+    // Check if we're trying to add to a past month
+    const selectedYear = selectedMonth.value.getFullYear();
+    const selectedMonthNum = selectedMonth.value.getMonth() + 1;
+    const expenseDate = new Date(newExpenseData.date);
+    const expenseYear = expenseDate.getFullYear();
+    const expenseMonth = expenseDate.getMonth() + 1;
+
+    // Only allow if expense date matches selected month
+    if (expenseYear === selectedYear && expenseMonth === selectedMonthNum) {
+      expenseStore.addExpense(newExpenseData);
+      console.log("✅ Expense added via store");
+    } else {
+      alert(
+        "Cannot add expense to a different month than selected. Please select the correct month first.",
+      );
+    }
   }
 </script>
 
@@ -311,5 +356,46 @@
     font-weight: 600;
     color: #1e293b;
     margin-bottom: 1.5rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #94a3b8;
+    font-size: 1rem;
+    background: white;
+    border-radius: 12px;
+    border: 2px dashed #e2e8f0;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-expense-container {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  .add-expense-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .add-expense-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+
+  .add-icon {
+    width: 20px;
+    height: 20px;
   }
 </style>

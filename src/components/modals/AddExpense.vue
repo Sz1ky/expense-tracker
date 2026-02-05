@@ -90,6 +90,27 @@
 
   // Handle form submission
   function handleSubmit() {
+    // Prevent adding to past months
+    const expenseDate = new Date(form.value.date);
+    const today = new Date();
+
+    // Reset time portions for comparison
+    const expenseYear = expenseDate.getFullYear();
+    const expenseMonth = expenseDate.getMonth();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+
+    // Check if expense date is in the past (before current month)
+    if (
+      expenseYear < currentYear ||
+      (expenseYear === currentYear && expenseMonth < currentMonth)
+    ) {
+      alert(
+        "Cannot add expenses to past months. Please select a current or future date.",
+      );
+      return;
+    }
+
     // Create expense data
     const expenseData = {
       amount: parseFloat(form.value.amount),
