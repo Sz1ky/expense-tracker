@@ -44,9 +44,11 @@
 
 <script setup>
   import { ref, computed } from "vue";
+  import { useAuthStore } from "@/stores/auth";
 
   const currentDate = ref(new Date());
   const emit = defineEmits(["openSettings", "monthChanged"]);
+  const authStore = useAuthStore();
 
   const currentMonth = computed(() => {
     return currentDate.value.toLocaleDateString("en-US", {
@@ -69,15 +71,16 @@
     emit("monthChanged", newDate);
   }
 
-  // Hardcoded. Later from auth
-  const userName = "John Doe";
-
   const userInitials = computed(() => {
+    const userName = authStore.user?.name;
+    if (!userName) return "U";
+
     return userName
       .split(" ")
       .map((word) => word[0])
       .join("")
-      .toUpperCase();
+      .toUpperCase()
+      .slice(0, 2);
   });
 </script>
 

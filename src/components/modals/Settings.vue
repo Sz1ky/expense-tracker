@@ -19,6 +19,8 @@
             <div class="avatar-large">
               {{ userInitials }}
             </div>
+            <p class="user-name">{{ authStore.user?.name || "User" }}</p>
+            <p class="user-email">{{ authStore.user?.email || "" }}</p>
           </div>
         </section>
 
@@ -99,7 +101,6 @@
 
   // Get settings from store
   const userData = ref({
-    name: authStore.user?.name || "John Doe",
     currency: settingsStore.settings.currency,
     monthlyBudget: settingsStore.settings.monthlyBudget,
   });
@@ -115,9 +116,12 @@
     return symbols[userData.value.currency] || "€";
   });
 
-  // User initials
+  // User initials from auth store
   const userInitials = computed(() => {
-    return userData.value.name
+    const userName = authStore.user?.name;
+    if (!userName) return "U";
+
+    return userName
       .split(" ")
       .map((word) => word[0])
       .join("")
@@ -254,7 +258,9 @@
 
   .profile-picture {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 1rem;
   }
 
@@ -271,6 +277,19 @@
     font-size: 2rem;
     border: 4px solid white;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .user-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+  }
+
+  .user-email {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
   }
 
   .form-group {
