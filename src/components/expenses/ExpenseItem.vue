@@ -16,13 +16,14 @@
     <!-- Right: Date + Amount -->
     <div class="expense-right">
       <div class="expense-date">{{ expense.displayDate }}</div>
-      <div class="expense-amount">€{{ formatAmount(expense.amount) }}</div>
+      <div class="expense-amount">{{ formatAmount(expense.amount) }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
   import { computed } from "vue";
+  import { useSettingsStore } from "@/stores/settings";
 
   const props = defineProps({
     expense: {
@@ -31,14 +32,16 @@
     },
   });
 
+  const settingsStore = useSettingsStore();
+
   // Category styling based on type
   const categoryClass = computed(() => {
     return `category-${props.expense.category.toLowerCase()}`;
   });
 
-  // Format amount with 2 decimals
+  // Format amount
   function formatAmount(amount) {
-    return parseFloat(amount).toFixed(2);
+    return settingsStore.formatCurrency(amount);
   }
 
   // Format category name (capitalize, etc.)

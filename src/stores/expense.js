@@ -1,8 +1,10 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useSettingsStore } from "./settings";
 
 export const useExpenseStore = defineStore("expense", () => {
   const selectedMonth = ref(new Date()); // Default to current month
+  const settingsStore = useSettingsStore();
   // State - Mock expenses data
   const expenses = ref([
     {
@@ -131,13 +133,18 @@ export const useExpenseStore = defineStore("expense", () => {
 
   // Actions
   function addExpense(expenseData) {
+    // Convert amount from user's current currency to EUR for storage
+    const amountInEUR = settingsStore.convertToEUR(
+      parseFloat(expenseData.amount),
+    );
+
     const newExpense = {
       id: Date.now(),
       name: expenseData.note || "Unnamed Expense",
       date: expenseData.date,
       displayDate: formatDisplayDate(expenseData.date),
       category: expenseData.category,
-      amount: parseFloat(expenseData.amount),
+      amount: amountInEUR, // ALWAYS store in EUR
       note: expenseData.note || "",
     };
 

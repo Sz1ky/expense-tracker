@@ -12,8 +12,7 @@
           <SummaryCard
             label="Total Spent"
             :value="
-              settingsStore.currencySymbol +
-              monthlySummary.currentMonthTotal.toFixed(2)
+              settingsStore.formatCurrency(monthlySummary.currentMonthTotal)
             "
             :trend="
               (monthlySummary.change > 0 ? '+' : '') +
@@ -29,8 +28,9 @@
             v-if="monthlySummary.hasBudget"
             label="Budget Remaining"
             :value="
-              settingsStore.currencySymbol +
-              Math.max(0, monthlySummary.budgetRemaining).toFixed(2)
+              settingsStore.formatCurrency(
+                Math.max(0, monthlySummary.budgetRemaining),
+              )
             "
             :trend="
               (monthlySummary.budgetHealthPercentage > 0 ? '+' : '') +
@@ -139,7 +139,7 @@
   // Get budget for selected month (null if no budget)
   const monthlyBudget = computed(() => {
     const yearMonth = selectedMonth.value.toISOString().slice(0, 7);
-    return settingsStore.getBudgetForMonth(yearMonth);
+    return settingsStore.getBudgetInEUR();
   });
 
   // Handle month change from navbar

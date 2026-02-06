@@ -16,7 +16,9 @@
         <div class="form-group">
           <label class="form-label">AMOUNT</label>
           <div class="amount-input">
-            <span class="currency">€</span>
+            <span class="currency">
+              {{ settingsStore.currencySymbol }}
+            </span>
             <input
               v-model="form.amount"
               type="number"
@@ -76,9 +78,11 @@
 <script setup>
   import { ref } from "vue";
   import { useExpenseStore } from "@/stores/expense";
+  import { useSettingsStore } from "@/stores/settings";
 
   const emit = defineEmits(["close", "save"]);
   const expenseStore = useExpenseStore();
+  const settingsStore = useSettingsStore();
 
   // Form data
   const form = ref({
