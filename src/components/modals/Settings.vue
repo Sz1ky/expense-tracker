@@ -92,12 +92,14 @@
   import { useRouter } from "vue-router";
   import { useAuthStore } from "@/stores/auth";
   import { useSettingsStore } from "@/stores/settings";
+  import { useExpenseStore } from "@/stores/expense";
 
   const emit = defineEmits(["close"]);
 
   const router = useRouter();
   const authStore = useAuthStore();
   const settingsStore = useSettingsStore();
+  const expenseStore = useExpenseStore();
 
   // Get settings from store
   const userData = ref({
@@ -142,10 +144,76 @@
     emit("close");
   }
 
-  // Export data
+  // Export data as JSON file
   function exportData() {
-    console.log("Exporting data...");
-    alert("Data export feature coming soon!");
+    try {
+      // Prepare data for export
+      const exportData = {
+        metadata: {
+          exportedAt: new Date().toISOString(),
+          appName: "ExpenseTracker",
+          version: "1.0",
+        },
+        user: {
+          id: authStore.user?.id,
+          name: authStore.user?.name,
+          email: authStore.user?.email,
+        },
+        settings: {
+          currency: settingsStore.settings.currency,
+          monthlyBudget: settingsStore.settings.monthlyBudget,
+          budgetEffectiveFrom: settingsStore.budgetEffectiveFrom,
+        },
+        expenses: expenseStore.expenses.map((expense) => ({
+          id: expense.id,
+          name: expense.name,
+          date: expense.date,
+          displayDate: expense.displayDate,
+          category: expense.category,
+          amountInEUR: expense.amount,
+          amountInDisplayCurrency: settingsStore.convertFromEUR(expense.amount),
+          displayCurrency: settingsStore.settings.currency,
+          note: expense.note || "",
+        })),
+        summary: {
+          totalExpenses: expenseStore.totalExpenses,
+          totalExpensesCount: expenseStore.expenses.length,
+          expensesByCategory: expenseStore.expensesByCategory,
+        },
+      };
+
+      // Create JSON string
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+
+      // Create download link
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Generate filename with date
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const userName = authStore.user?.name?.replace(/\s+/g, "_") || "user";
+      link.download = `expensetracker_export_${userName}_${dateStr}.json`;
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      URL.revokeObjectURL(url);
+
+      console.log("✅ Data exported successfully");
+
+      // Show success message
+      alert(
+        `Data exported successfully!\n\nFile: ${link.download}\n\nContains:\n- ${exportData.expenses.length} expenses\n- User settings\n- Category statistics`,
+      );
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export data. Please try again.");
+    }
   }
 
   // Logout
