@@ -39,7 +39,13 @@
                 d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
               />
             </svg>
-            <p>Reset link sent! Check your email.</p>
+            <p>
+              Reset link sent! Check your email.
+              <small
+                >💡 <strong>Tip:</strong> Check your spam folder if you don't
+                see the email.</small
+              >
+            </p>
           </div>
 
           <!-- Back to Login -->
@@ -62,6 +68,11 @@
               class="form-input"
               required
             />
+          </div>
+
+          <!-- Error message display -->
+          <div v-if="error" class="error-message">
+            {{ error }}
           </div>
 
           <!-- Submit Button -->
@@ -96,6 +107,7 @@
 
 <script setup>
   import { ref } from "vue";
+  import { useAuthStore } from "@/stores/auth";
 
   // Form data
   const form = ref({
@@ -104,22 +116,22 @@
 
   const emailSent = ref(false);
   const isLoading = ref(false);
+  const error = ref("");
+  const authStore = useAuthStore();
 
   // Handle form submission
-  function handleResetRequest() {
+  async function handleResetRequest() {
     isLoading.value = true;
+    error.value = "";
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Reset requested for:", form.value.email);
+    try {
+      await authStore.resetPassword(form.value.email);
       emailSent.value = true;
+    } catch (err) {
+      error.value = err.message || "Failed to send reset email";
+    } finally {
       isLoading.value = false;
-
-      // In real app:
-      // 1. Call API
-      // 2. Show success/error message
-      // 3. Redirect or show instructions
-    }, 1500);
+    }
   }
 </script>
 
@@ -313,5 +325,15 @@
     font-size: 1.125rem;
     opacity: 0.9;
     line-height: 1.6;
+  }
+
+  .error-message {
+    background-color: #fee2e2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    border: 1px solid #fca5a5;
   }
 </style>
