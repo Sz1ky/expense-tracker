@@ -1,58 +1,20 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "./settings";
 
 export const useExpenseStore = defineStore("expense", () => {
-  const selectedMonth = ref(new Date()); // Default to current month
+  const selectedMonth = ref(new Date());
+  const authStore = useAuthStore();
   const settingsStore = useSettingsStore();
-  // State - Mock expenses data
-  const expenses = ref([
-    {
-      id: 1,
-      name: "Starbucks",
-      date: "2026-02-01",
-      displayDate: "Feb 01, 2026",
-      category: "dining",
-      amount: 8.75,
-      note: "Morning coffee",
-    },
-    {
-      id: 2,
-      name: "Uber Trip",
-      date: "2026-02-01",
-      displayDate: "Feb 01, 2026",
-      category: "transport",
-      amount: 24.5,
-      note: "Airport ride",
-    },
-    {
-      id: 3,
-      name: "Whole Foods",
-      date: "2026-02-02",
-      displayDate: "Feb 02, 2026",
-      category: "groceries",
-      amount: 86.3,
-      note: "Weekly groceries",
-    },
-    {
-      id: 4,
-      name: "ConEd Utilities",
-      date: "2026-02-03",
-      displayDate: "Feb 03, 2026",
-      category: "bills",
-      amount: 120.0,
-      note: "Electricity bill",
-    },
-    {
-      id: 5,
-      name: "Equinox Gym",
-      date: "2026-02-04",
-      displayDate: "Feb 04, 2026",
-      category: "health",
-      amount: 250.0,
-      note: "Monthly membership",
-    },
-  ]);
+
+  // State
+  const expenses = ref([]);
+  const isLoading = ref(false);
+  const error = ref(null);
+
+  // API Base URL from environment
+  const API_BASE = import.meta.env.VITE_API_URL || "";
 
   // Getters
   const totalExpenses = computed(() => {
@@ -100,9 +62,7 @@ export const useExpenseStore = defineStore("expense", () => {
 
   const monthlySummary = computed(() => {
     const currentTotal = totalExpenses.value;
-
-    // Mock previous month (80% of current for demo)
-    const previousTotal = currentTotal * 0.8;
+    const previousTotal = currentTotal * 0.8; // TODO: Get from API
 
     const change =
       previousTotal > 0
@@ -117,7 +77,6 @@ export const useExpenseStore = defineStore("expense", () => {
     };
   });
 
-  // Getter for filtered expenses
   const filteredExpenses = computed(() => {
     const year = selectedMonth.value.getFullYear();
     const month = selectedMonth.value.getMonth() + 1;
@@ -131,61 +90,230 @@ export const useExpenseStore = defineStore("expense", () => {
     });
   });
 
-  // Actions
-  function addExpense(expenseData) {
-    // Convert amount from user's current currency to EUR for storage
-    const amountInEUR = settingsStore.convertToEUR(
-      parseFloat(expenseData.amount),
-    );
+  // ===== API HELPERS =====
+  async function fetchWithAuth(url, options = {}) {
+    const user = authStore.user;
+    if (!user) throw new Error("User not authenticated");
 
-    const newExpense = {
-      id: Date.now(),
-      name: expenseData.note || "Unnamed Expense",
-      date: expenseData.date,
-      displayDate: formatDisplayDate(expenseData.date),
-      category: expenseData.category,
-      amount: amountInEUR, // ALWAYS store in EUR
-      note: expenseData.note || "",
-    };
+    const token = await authStore.getToken();
 
-    expenses.value.unshift(newExpense);
-    return newExpense;
-  }
+    const fullUrl = API_BASE + url;
 
-  function updateExpense(id, updatedData) {
-    const index = expenses.value.findIndex((exp) => exp.id === id);
-    if (index !== -1) {
-      expenses.value[index] = {
-        ...expenses.value[index],
-        ...updatedData,
-        amount: parseFloat(updatedData.amount || expenses.value[index].amount),
-      };
-    }
-  }
+    console.log("🌐 API Request:", fullUrl, options); // Debug log
 
-  function deleteExpense(id) {
-    const index = expenses.value.findIndex((exp) => exp.id === id);
-    if (index !== -1) {
-      expenses.value.splice(index, 1);
-    }
-  }
-
-  function getExpensesByMonth(year, month) {
-    return expenses.value.filter((expense) => {
-      const date = new Date(expense.date);
-      return date.getFullYear() === year && date.getMonth() + 1 === month;
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
     });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("❌ API Error:", error);
+      throw new Error(error.message || "API request failed");
+    }
+
+    return response.json();
   }
 
-  function getExpensesByCategory(category) {
-    return expenses.value.filter((expense) => expense.category === category);
+  // ===== API ACTIONS =====
+
+  // Load all expenses from API
+  async function loadExpenses() {
+    if (!authStore.isAuthenticated) {
+      expenses.value = [];
+      return;
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const data = await fetchWithAuth("/expenses");
+
+      expenses.value = data.map((expense) => ({
+        id: expense.id,
+        name: expense.name,
+        date: expense.date,
+        displayDate: formatDisplayDate(expense.date),
+        category: expense.category,
+        amount: expense.amount,
+        note: expense.note || "",
+      }));
+
+      console.log("✅ Expenses loaded from API:", expenses.value.length);
+    } catch (err) {
+      error.value = err.message;
+      console.error("Error loading expenses:", err);
+      expenses.value = []; // Clear on error
+    } finally {
+      isLoading.value = false;
+    }
   }
 
+  // Add expense via API
+  async function addExpense(expenseData) {
+    if (!authStore.isAuthenticated) {
+      throw new Error("User not authenticated");
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      // Convert amount to EUR for storage
+      const amountInEUR = settingsStore.convertToEUR(
+        parseFloat(expenseData.amount),
+      );
+
+      const apiData = {
+        name: expenseData.note || "Unnamed Expense",
+        amount: amountInEUR,
+        category: expenseData.category,
+        date: expenseData.date,
+        note: expenseData.note || "",
+      };
+
+      const newExpense = await fetchWithAuth("/expenses", {
+        method: "POST",
+        body: JSON.stringify(apiData),
+      });
+
+      // Add to local state
+      expenses.value.unshift({
+        id: newExpense.id,
+        name: newExpense.name,
+        date: newExpense.date,
+        displayDate: formatDisplayDate(newExpense.date),
+        category: newExpense.category,
+        amount: newExpense.amount,
+        note: newExpense.note || "",
+      });
+
+      console.log("✅ Expense added via API:", newExpense);
+      return newExpense;
+    } catch (err) {
+      error.value = err.message;
+      console.error("Error adding expense:", err);
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Update expense via API
+  async function updateExpense(id, updatedData) {
+    if (!authStore.isAuthenticated) {
+      throw new Error("User not authenticated");
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      // Convert amount if provided
+      if (updatedData.amount) {
+        updatedData.amount = settingsStore.convertToEUR(
+          parseFloat(updatedData.amount),
+        );
+      }
+
+      const updatedExpense = await fetchWithAuth(`/expenses/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(updatedData),
+      });
+
+      // Update local state
+      const index = expenses.value.findIndex((exp) => exp.id === id);
+      if (index !== -1) {
+        expenses.value[index] = {
+          ...expenses.value[index],
+          ...updatedExpense,
+          displayDate: formatDisplayDate(updatedExpense.date),
+        };
+      }
+
+      console.log("✅ Expense updated via API:", updatedExpense);
+      return updatedExpense;
+    } catch (err) {
+      error.value = err.message;
+      console.error("Error updating expense:", err);
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Delete expense via API
+  async function deleteExpense(id) {
+    if (!authStore.isAuthenticated) {
+      throw new Error("User not authenticated");
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      await fetchWithAuth(`/expenses/${id}`, {
+        method: "DELETE",
+      });
+
+      // Remove from local state
+      const index = expenses.value.findIndex((exp) => exp.id === id);
+      if (index !== -1) {
+        expenses.value.splice(index, 1);
+      }
+
+      console.log("✅ Expense deleted via API:", id);
+      return true;
+    } catch (err) {
+      error.value = err.message;
+      console.error("Error deleting expense:", err);
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Load monthly summary from API (for accurate calculations)
+  async function loadMonthlySummary(year, month) {
+    if (!authStore.isAuthenticated) {
+      return null;
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const summary = await fetchWithAuth(
+        `/summary/${year}-${String(month).padStart(2, "0")}`,
+      );
+      console.log("✅ Monthly summary loaded:", summary);
+      return summary;
+    } catch (err) {
+      error.value = err.message;
+      console.error("Error loading monthly summary:", err);
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Clear all expenses (on logout)
+  function clearExpenses() {
+    expenses.value = [];
+    isLoading.value = false;
+    error.value = null;
+  }
+
+  // ===== HELPER FUNCTIONS =====
   function setSelectedMonth(date) {
     selectedMonth.value = date;
   }
 
-  // Helper function
   function formatDisplayDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -198,6 +326,9 @@ export const useExpenseStore = defineStore("expense", () => {
   return {
     // State
     expenses,
+    isLoading,
+    error,
+    selectedMonth,
 
     // Getters
     totalExpenses,
@@ -205,12 +336,24 @@ export const useExpenseStore = defineStore("expense", () => {
     expensesByCategory,
     topCategory,
     monthlySummary,
+    filteredExpenses,
 
     // Actions
+    loadExpenses,
     addExpense,
     updateExpense,
     deleteExpense,
-    getExpensesByMonth,
-    getExpensesByCategory,
+    loadMonthlySummary,
+    clearExpenses,
+    setSelectedMonth,
+    getExpensesByMonth: (year, month) => {
+      return expenses.value.filter((expense) => {
+        const date = new Date(expense.date);
+        return date.getFullYear() === year && date.getMonth() + 1 === month;
+      });
+    },
+    getExpensesByCategory: (category) => {
+      return expenses.value.filter((expense) => expense.category === category);
+    },
   };
 });

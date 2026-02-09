@@ -98,6 +98,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function logout() {
     try {
       await signOut(auth);
+
       router.push("/login");
       console.log("✅ Logged out successfully");
     } catch (err) {
@@ -123,6 +124,14 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  // Get Firebase ID token for API requests
+  async function getToken() {
+    if (!auth.currentUser) {
+      throw new Error("User not authenticated");
+    }
+    return await auth.currentUser.getIdToken();
+  }
+
   return {
     // State
     user,
@@ -137,5 +146,6 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     logout,
     resetPassword,
+    getToken,
   };
 });

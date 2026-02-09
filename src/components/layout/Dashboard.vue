@@ -90,9 +90,10 @@
 </template>
 
 <script setup>
-  import { ref, computed } from "vue";
+  import { ref, computed, watch } from "vue";
   import { useExpenseStore } from "@/stores/expense";
   import { useSettingsStore } from "@/stores/settings";
+  import { useAuthStore } from "@/stores/auth";
   import Navbar from "./Navbar.vue";
   import SummaryCard from "../cards/SummaryCard.vue";
   import ExpenseList from "../expenses/ExpenseList.vue";
@@ -103,6 +104,7 @@
   // Initialize stores
   const expenseStore = useExpenseStore();
   const settingsStore = useSettingsStore();
+  const authStore = useAuthStore();
 
   // Modal states
   const showAddExpense = ref(false);
@@ -110,6 +112,28 @@
 
   // Current selected month (default to current month)
   const selectedMonth = ref(new Date());
+
+  // Load expenses when authenticated
+  watch(
+    () => authStore.isAuthenticated,
+    (isAuth) => {
+      if (isAuth) {
+        expenseStore.loadExpenses();
+      } else {
+        expenseStore.clearExpenses();
+      }
+    },
+    { immediate: true },
+  );
+
+  // Load expenses when month changes
+  watch(selectedMonth, () => {
+    if (authStore.isAuthenticated) {
+      const year = selectedMonth.value.getFullYear();
+      const month = selectedMonth.value.getMonth() + 1;
+      expenseStore.loadMonthlySummary(year, month);
+    }
+  });
 
   // Check if selected month is in the past
   const isPastMonth = computed(() => {
@@ -367,35 +391,5 @@
     border-radius: 12px;
     border: 2px dashed #e2e8f0;
     margin-bottom: 1.5rem;
-  }
-
-  .add-expense-container {
-    margin-top: 1.5rem;
-    text-align: center;
-  }
-
-  .add-expense-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 0.875rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .add-expense-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-
-  .add-icon {
-    width: 20px;
-    height: 20px;
   }
 </style>
