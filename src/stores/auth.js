@@ -10,6 +10,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { app } from "@/firebase";
+import { useSettingsStore } from "./settings";
 
 export const useAuthStore = defineStore("auth", () => {
   const router = useRouter();
@@ -31,8 +32,16 @@ export const useAuthStore = defineStore("auth", () => {
         name: firebaseUser.displayName,
         email: firebaseUser.email,
       };
+
+      // Load user-specific settings
+      const settingsStore = useSettingsStore();
+      settingsStore.loadSettings();
     } else {
       user.value = null;
+
+      // Reset settings when logging out
+      const settingsStore = useSettingsStore();
+      settingsStore.resetToDefaults();
     }
   });
 

@@ -1,8 +1,11 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useAuthStore } from "@/stores/auth";
 
 export const useSettingsStore = defineStore("settings", () => {
-  // Default settings
+  const authStore = useAuthStore();
+
+  // Default settings (NOT in localStorage - user-specific)
   const settings = ref({
     currency: "EUR",
     monthlyBudget: 3000,
@@ -16,32 +19,25 @@ export const useSettingsStore = defineStore("settings", () => {
   });
 
   // Store state
+  const isLoading = ref(false);
   const isLoadingRates = ref(false);
+  const error = ref(null);
   const ratesError = ref(null);
   const ratesLastUpdated = ref(null);
 
-  // Track when budget was set
-  const budgetEffectiveFrom = ref(
-    localStorage.getItem("budgetEffectiveFrom") ||
-      new Date().toISOString().slice(0, 7),
-  );
+  // Track when budget was set - PER USER
+  const budgetEffectiveFrom = ref(new Date().toISOString().slice(0, 7));
 
-  // Load from localStorage on init
-  const savedSettings = localStorage.getItem("expenseTrackerSettings");
-  if (savedSettings) {
-    const parsed = JSON.parse(savedSettings);
-    settings.value = {
-      currency: parsed.currency || "EUR",
-      monthlyBudget: parsed.monthlyBudget || 3000,
-    };
-  }
-
-  // Load saved exchange rates
+  // Load saved exchange rates from localStorage
   const savedRates = localStorage.getItem("exchangeRates");
   if (savedRates) {
-    const parsed = JSON.parse(savedRates);
-    exchangeRates.value = parsed.rates;
-    ratesLastUpdated.value = parsed.lastUpdated;
+    try {
+      const parsed = JSON.parse(savedRates);
+      exchangeRates.value = parsed.rates;
+      ratesLastUpdated.value = parsed.lastUpdated;
+    } catch (e) {
+      console.error("Failed to parse saved exchange rates:", e);
+    }
   }
 
   // Currency symbol
@@ -54,6 +50,106 @@ export const useSettingsStore = defineStore("settings", () => {
     };
     return symbols[settings.value.currency] || "€";
   });
+
+  // ===== LOAD USER SETTINGS FROM API =====
+  async function loadSettings() {
+    if (!authStore.isAuthenticated) {
+      console.log("User not authenticated, using default settings");
+      resetToDefaults();
+      return;
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const token = await authStore.getToken();
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Failed to load settings: ${response.status}`,
+        );
+      }
+
+      const data = await response.json();
+
+      // Update local state with user-specific settings
+      settings.value = {
+        currency: data.currency || "EUR",
+        monthlyBudget: data.monthlyBudget || 3000,
+      };
+
+      budgetEffectiveFrom.value =
+        data.budgetEffectiveFrom || new Date().toISOString().slice(0, 7);
+
+      console.log("✅ Settings loaded from API:", settings.value);
+    } catch (err) {
+      console.error("Error loading settings:", err);
+      error.value = err.message;
+      resetToDefaults();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ===== SAVE USER SETTINGS TO API =====
+  async function saveSettings(newSettings) {
+    if (!authStore.isAuthenticated) {
+      throw new Error("User not authenticated");
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const token = await authStore.getToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currency: newSettings.currency,
+          monthlyBudget: newSettings.monthlyBudget,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Failed to save settings: ${response.status}`,
+        );
+      }
+
+      const data = await response.json();
+
+      // Update local state with new settings
+      settings.value = {
+        currency: data.currency,
+        monthlyBudget: data.monthlyBudget,
+      };
+
+      budgetEffectiveFrom.value = data.budgetEffectiveFrom;
+
+      console.log("✅ Settings saved to API:", settings.value);
+
+      return data;
+    } catch (err) {
+      console.error("Error saving settings:", err);
+      error.value = err.message;
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   // ===== EXCHANGE RATE API (EUR as base) =====
 
@@ -116,6 +212,16 @@ export const useSettingsStore = defineStore("settings", () => {
         };
 
         console.log("Using Frankfurter fallback rates:", exchangeRates.value);
+
+        // Save fallback rates
+        ratesLastUpdated.value = new Date().toISOString();
+        localStorage.setItem(
+          "exchangeRates",
+          JSON.stringify({
+            rates: exchangeRates.value,
+            lastUpdated: ratesLastUpdated.value,
+          }),
+        );
       } catch (fallbackError) {
         console.error("Fallback also failed:", fallbackError);
         ratesError.value = error.message;
@@ -198,21 +304,9 @@ export const useSettingsStore = defineStore("settings", () => {
     return settings.value.monthlyBudget;
   }
 
-  // Update settings
-  function updateSettings(newSettings) {
-    // If monthlyBudget is being updated, update the effective date too
-    if (newSettings.monthlyBudget !== undefined) {
-      budgetEffectiveFrom.value = new Date().toISOString().slice(0, 7);
-      localStorage.setItem("budgetEffectiveFrom", budgetEffectiveFrom.value);
-    }
-
-    settings.value = { ...settings.value, ...newSettings };
-
-    // Save to localStorage
-    localStorage.setItem(
-      "expenseTrackerSettings",
-      JSON.stringify(settings.value),
-    );
+  // Update settings (public method that calls saveSettings)
+  async function updateSettings(newSettings) {
+    return await saveSettings(newSettings);
   }
 
   function resetToDefaults() {
@@ -221,19 +315,15 @@ export const useSettingsStore = defineStore("settings", () => {
       monthlyBudget: 3000,
     };
     budgetEffectiveFrom.value = new Date().toISOString().slice(0, 7);
-
-    localStorage.setItem("budgetEffectiveFrom", budgetEffectiveFrom.value);
-    localStorage.setItem(
-      "expenseTrackerSettings",
-      JSON.stringify(settings.value),
-    );
   }
 
   return {
     // State
     settings,
     exchangeRates,
+    isLoading,
     isLoadingRates,
+    error,
     ratesError,
     ratesLastUpdated,
 
@@ -242,6 +332,8 @@ export const useSettingsStore = defineStore("settings", () => {
     budgetEffectiveFrom,
 
     // Actions
+    loadSettings,
+    saveSettings,
     hasBudgetForMonth,
     getBudgetForMonth,
     getBudgetInEUR,

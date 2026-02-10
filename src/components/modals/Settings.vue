@@ -135,13 +135,20 @@
   function saveSettings() {
     console.log("Saving settings:", userData.value);
 
-    // Update settings store
-    settingsStore.updateSettings({
-      currency: userData.value.currency,
-      monthlyBudget: Number(userData.value.monthlyBudget),
-    });
-
-    emit("close");
+    // Use the store's updateSettings which calls the API
+    settingsStore
+      .updateSettings({
+        currency: userData.value.currency,
+        monthlyBudget: Number(userData.value.monthlyBudget),
+      })
+      .then(() => {
+        console.log("✅ Settings saved successfully");
+        emit("close");
+      })
+      .catch((error) => {
+        console.error("❌ Failed to save settings:", error);
+        alert("Failed to save settings: " + error.message);
+      });
   }
 
   // Export data as JSON file
