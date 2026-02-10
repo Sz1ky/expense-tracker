@@ -54,7 +54,6 @@ export const useSettingsStore = defineStore("settings", () => {
   // ===== LOAD USER SETTINGS FROM API =====
   async function loadSettings() {
     if (!authStore.isAuthenticated) {
-      console.log("User not authenticated, using default settings");
       resetToDefaults();
       return;
     }
@@ -87,8 +86,6 @@ export const useSettingsStore = defineStore("settings", () => {
 
       budgetEffectiveFrom.value =
         data.budgetEffectiveFrom || new Date().toISOString().slice(0, 7);
-
-      console.log("✅ Settings loaded from API:", settings.value);
     } catch (err) {
       console.error("Error loading settings:", err);
       error.value = err.message;
@@ -139,8 +136,6 @@ export const useSettingsStore = defineStore("settings", () => {
 
       budgetEffectiveFrom.value = data.budgetEffectiveFrom;
 
-      console.log("✅ Settings saved to API:", settings.value);
-
       return data;
     } catch (err) {
       console.error("Error saving settings:", err);
@@ -168,7 +163,6 @@ export const useSettingsStore = defineStore("settings", () => {
       }
 
       const data = await response.json();
-      console.log("ExchangeRate-API data (EUR base):", data);
 
       exchangeRates.value = {
         EUR: 1.0,
@@ -176,8 +170,6 @@ export const useSettingsStore = defineStore("settings", () => {
         GBP: data.rates.GBP || 0.86,
         JPY: data.rates.JPY || 163.0,
       };
-
-      console.log("Final exchange rates:", exchangeRates.value);
 
       ratesLastUpdated.value = new Date().toISOString();
 
@@ -195,7 +187,6 @@ export const useSettingsStore = defineStore("settings", () => {
       console.error("Failed to fetch exchange rates:", error);
 
       // Try Frankfurter as fallback
-      console.log("Trying Frankfurter API as fallback...");
       try {
         const fallbackResponse = await fetch(
           "https://api.frankfurter.app/latest?from=USD",
@@ -210,8 +201,6 @@ export const useSettingsStore = defineStore("settings", () => {
           GBP: (1 / usdToEur) * fallbackData.rates.GBP,
           JPY: (1 / usdToEur) * fallbackData.rates.JPY,
         };
-
-        console.log("Using Frankfurter fallback rates:", exchangeRates.value);
 
         // Save fallback rates
         ratesLastUpdated.value = new Date().toISOString();

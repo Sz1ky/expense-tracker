@@ -169,12 +169,6 @@
   // Handle month change from navbar
   function handleMonthChange(newDate) {
     selectedMonth.value = newDate;
-    console.log(
-      "Month changed to:",
-      newDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      "Is past month:",
-      isPastMonth.value,
-    );
   }
 
   // Filter expenses by selected month
@@ -321,7 +315,6 @@
     // Only allow if expense date matches selected month
     if (expenseYear === selectedYear && expenseMonth === selectedMonthNum) {
       expenseStore.addExpense(newExpenseData);
-      console.log("✅ Expense added via store");
     } else {
       alert(
         "Cannot add expense to a different month than selected. Please select the correct month first.",

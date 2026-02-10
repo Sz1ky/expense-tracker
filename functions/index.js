@@ -141,8 +141,6 @@ app.get("/expenses", verifyToken, async (req, res) => {
     const userId = req.user.uid;
     const { month, year } = req.query;
 
-    console.log(`📊 Fetching expenses for user: ${userId}`);
-
     let query = db.collection("expenses").where("userId", "==", userId);
 
     // Filter by month/year if provided
@@ -152,10 +150,6 @@ app.get("/expenses", verifyToken, async (req, res) => {
 
       const startDateStr = startDate.toISOString().split("T")[0];
       const endDateStr = endDate.toISOString().split("T")[0];
-
-      console.log(
-        `🔍 Filtering by date range: ${startDateStr} to ${endDateStr}`,
-      );
 
       query = query
         .where("date", ">=", startDateStr)
@@ -168,8 +162,6 @@ app.get("/expenses", verifyToken, async (req, res) => {
       id: doc.id,
       ...doc.data(),
     }));
-
-    console.log(`✅ Found ${expenses.length} expenses for user ${userId}`);
 
     res.status(200).json(expenses);
   } catch (error) {
@@ -187,8 +179,6 @@ app.post("/expenses", verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
     const { name, amount, category, date, note } = req.body;
-
-    console.log(`📝 Creating expense for user: ${userId}`, req.body);
 
     // Validation
     if (!name || typeof amount !== "number" || !category || !date) {
@@ -209,11 +199,7 @@ app.post("/expenses", verifyToken, async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    console.log("💾 Saving expense data:", expenseData);
-
     const docRef = await db.collection("expenses").add(expenseData);
-
-    console.log("✅ Expense created with ID:", docRef.id);
 
     res.status(201).json({
       id: docRef.id,
@@ -235,8 +221,6 @@ app.put("/expenses/:id", verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
     const expenseId = req.params.id;
-
-    console.log(`✏️ Updating expense ${expenseId} for user ${userId}`);
 
     // Check if expense belongs to user
     const expenseRef = db.collection("expenses").doc(expenseId);
@@ -284,8 +268,6 @@ app.delete("/expenses/:id", verifyToken, async (req, res) => {
     const userId = req.user.uid;
     const expenseId = req.params.id;
 
-    console.log(`🗑️ Deleting expense ${expenseId} for user ${userId}`);
-
     // Check if expense belongs to user
     const expenseRef = db.collection("expenses").doc(expenseId);
     const expenseDoc = await expenseRef.get();
@@ -320,8 +302,6 @@ app.get("/settings", verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    console.log(`⚙️ Fetching settings for user: ${userId}`);
-
     const settingsRef = db.collection("settings").doc(userId);
     const settingsDoc = await settingsRef.get();
 
@@ -334,15 +314,11 @@ app.get("/settings", verifyToken, async (req, res) => {
         createdAt: new Date().toISOString(),
       };
 
-      console.log(`📋 Returning default settings for new user ${userId}`);
-
       // Save default settings
       await settingsRef.set(defaultSettings);
 
       return res.status(200).json(defaultSettings);
     }
-
-    console.log(`✅ Found existing settings for user ${userId}`);
 
     res.status(200).json(settingsDoc.data());
   } catch (error) {
@@ -358,8 +334,6 @@ app.put("/settings", verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
     const { currency, monthlyBudget } = req.body;
-
-    console.log(`⚙️ Updating settings for user ${userId}:`, req.body);
 
     // Validation
     if (!currency || typeof monthlyBudget !== "number") {
@@ -379,8 +353,6 @@ app.put("/settings", verifyToken, async (req, res) => {
     const settingsRef = db.collection("settings").doc(userId);
     await settingsRef.set(settingsData, { merge: true });
 
-    console.log(`✅ Settings updated for user ${userId}`);
-
     res.status(200).json(settingsData);
   } catch (error) {
     console.error("❌ Error updating settings:", error);
@@ -397,8 +369,6 @@ app.get("/summary/:month", verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
     const month = req.params.month; // Format: YYYY-MM
-
-    console.log(`📈 Getting summary for user ${userId}, month: ${month}`);
 
     // Parse month
     const [year, monthNum] = month.split("-").map(Number);
@@ -490,8 +460,6 @@ app.get("/summary/:month", verifyToken, async (req, res) => {
           : null,
       currency: settings.currency,
     };
-
-    console.log(`✅ Summary calculated for ${month}:`, summary);
 
     res.status(200).json(summary);
   } catch (error) {

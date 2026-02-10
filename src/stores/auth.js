@@ -72,8 +72,6 @@ export const useAuthStore = defineStore("auth", () => {
         name: refreshedUser.displayName,
         email: refreshedUser.email,
       };
-
-      console.log("✅ Registration successful", user.value);
     } catch (err) {
       error.value = err.message;
       console.error("Registration error:", err);
@@ -93,8 +91,6 @@ export const useAuthStore = defineStore("auth", () => {
         credentials.email,
         credentials.password,
       );
-
-      console.log("✅ Login successful");
     } catch (err) {
       error.value = err.message;
       console.error("Login error:", err);
@@ -109,7 +105,6 @@ export const useAuthStore = defineStore("auth", () => {
       await signOut(auth);
 
       router.push("/login");
-      console.log("✅ Logged out successfully");
     } catch (err) {
       console.error("Logout error:", err);
       throw err;
@@ -122,7 +117,6 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       await sendPasswordResetEmail(auth, email);
-      console.log("✅ Password reset email sent");
       return true;
     } catch (err) {
       error.value = err.message;

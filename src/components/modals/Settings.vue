@@ -133,8 +133,6 @@
 
   // Save settings - update store
   function saveSettings() {
-    console.log("Saving settings:", userData.value);
-
     // Use the store's updateSettings which calls the API
     settingsStore
       .updateSettings({
@@ -142,7 +140,6 @@
         monthlyBudget: Number(userData.value.monthlyBudget),
       })
       .then(() => {
-        console.log("✅ Settings saved successfully");
         emit("close");
       })
       .catch((error) => {
@@ -210,8 +207,6 @@
 
       // Clean up
       URL.revokeObjectURL(url);
-
-      console.log("✅ Data exported successfully");
 
       // Show success message
       alert(

@@ -99,8 +99,6 @@ export const useExpenseStore = defineStore("expense", () => {
 
     const fullUrl = API_BASE + url;
 
-    console.log("🌐 API Request:", fullUrl, options); // Debug log
-
     const response = await fetch(fullUrl, {
       ...options,
       headers: {
@@ -143,8 +141,6 @@ export const useExpenseStore = defineStore("expense", () => {
         amount: expense.amount,
         note: expense.note || "",
       }));
-
-      console.log("✅ Expenses loaded from API:", expenses.value.length);
     } catch (err) {
       error.value = err.message;
       console.error("Error loading expenses:", err);
@@ -193,7 +189,6 @@ export const useExpenseStore = defineStore("expense", () => {
         note: newExpense.note || "",
       });
 
-      console.log("✅ Expense added via API:", newExpense);
       return newExpense;
     } catch (err) {
       error.value = err.message;
@@ -236,7 +231,6 @@ export const useExpenseStore = defineStore("expense", () => {
         };
       }
 
-      console.log("✅ Expense updated via API:", updatedExpense);
       return updatedExpense;
     } catch (err) {
       error.value = err.message;
@@ -267,7 +261,6 @@ export const useExpenseStore = defineStore("expense", () => {
         expenses.value.splice(index, 1);
       }
 
-      console.log("✅ Expense deleted via API:", id);
       return true;
     } catch (err) {
       error.value = err.message;
@@ -291,7 +284,6 @@ export const useExpenseStore = defineStore("expense", () => {
       const summary = await fetchWithAuth(
         `/summary/${year}-${String(month).padStart(2, "0")}`,
       );
-      console.log("✅ Monthly summary loaded:", summary);
       return summary;
     } catch (err) {
       error.value = err.message;
