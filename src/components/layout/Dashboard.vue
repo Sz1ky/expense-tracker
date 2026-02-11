@@ -154,12 +154,6 @@
     );
   });
 
-  // Check if selected month has a budget
-  const hasBudgetForSelectedMonth = computed(() => {
-    const yearMonth = selectedMonth.value.toISOString().slice(0, 7); // YYYY-MM
-    return settingsStore.hasBudgetForMonth(yearMonth);
-  });
-
   // Get budget for selected month (null if no budget)
   const monthlyBudget = computed(() => {
     const yearMonth = selectedMonth.value.toISOString().slice(0, 7);

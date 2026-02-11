@@ -171,14 +171,6 @@
     transform: scale(1.05);
   }
 
-  .avatar-image {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #f0f0f0;
-  }
-
   .avatar-initials {
     width: 40px;
     height: 40px;

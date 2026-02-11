@@ -89,14 +89,12 @@
 
 <script setup>
   import { ref, computed } from "vue";
-  import { useRouter } from "vue-router";
   import { useAuthStore } from "@/stores/auth";
   import { useSettingsStore } from "@/stores/settings";
   import { useExpenseStore } from "@/stores/expense";
 
   const emit = defineEmits(["close"]);
 
-  const router = useRouter();
   const authStore = useAuthStore();
   const settingsStore = useSettingsStore();
   const expenseStore = useExpenseStore();

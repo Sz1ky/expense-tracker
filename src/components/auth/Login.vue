@@ -345,30 +345,6 @@
     border-radius: 10px;
     margin-bottom: 1rem;
     font-size: 0.875rem;
-  }
-
-  .error-message {
-    background-color: #fee2e2;
-    color: #dc2626;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
     border: 1px solid #fca5a5;
-  }
-
-  .form-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .submit-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .password-toggle:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 </style>

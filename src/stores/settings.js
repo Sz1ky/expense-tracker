@@ -282,12 +282,6 @@ export const useSettingsStore = defineStore("settings", () => {
     return yearMonth >= budgetEffectiveFrom.value;
   }
 
-  // Get budget for specific month (converted to display currency)
-  function getBudgetForMonth(yearMonth) {
-    if (!hasBudgetForMonth(yearMonth)) return null;
-    return convertFromEUR(settings.value.monthlyBudget);
-  }
-
   // Get raw budget in EUR
   function getBudgetInEUR() {
     return settings.value.monthlyBudget;
@@ -324,7 +318,6 @@ export const useSettingsStore = defineStore("settings", () => {
     loadSettings,
     saveSettings,
     hasBudgetForMonth,
-    getBudgetForMonth,
     getBudgetInEUR,
     convertFromEUR,
     convertToEUR,

@@ -60,23 +60,6 @@ export const useExpenseStore = defineStore("expense", () => {
     };
   });
 
-  const monthlySummary = computed(() => {
-    const currentTotal = totalExpenses.value;
-    const previousTotal = currentTotal * 0.8; // TODO: Get from API
-
-    const change =
-      previousTotal > 0
-        ? (((currentTotal - previousTotal) / previousTotal) * 100).toFixed(0)
-        : 0;
-
-    return {
-      currentMonthTotal: currentTotal,
-      previousMonthTotal: previousTotal,
-      change: parseFloat(change),
-      isPositive: currentTotal <= previousTotal,
-    };
-  });
-
   const filteredExpenses = computed(() => {
     const year = selectedMonth.value.getFullYear();
     const month = selectedMonth.value.getMonth() + 1;
@@ -327,7 +310,6 @@ export const useExpenseStore = defineStore("expense", () => {
     recentExpenses,
     expensesByCategory,
     topCategory,
-    monthlySummary,
     filteredExpenses,
 
     // Actions

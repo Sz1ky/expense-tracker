@@ -280,15 +280,6 @@
     margin-top: 1rem;
   }
 
-  .support-note {
-    margin-top: 3rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
-    text-align: center;
-    color: #6b7280;
-    font-size: 0.875rem;
-  }
-
   .link {
     color: #667eea;
     text-decoration: none;
