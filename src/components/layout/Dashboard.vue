@@ -156,7 +156,14 @@
 
   // Get budget for selected month (null if no budget)
   const monthlyBudget = computed(() => {
-    const yearMonth = selectedMonth.value.toISOString().slice(0, 7);
+    const yearMonth = selectedMonth.value.toISOString().slice(0, 7); // YYYY-MM
+
+    // Check if this month has a budget
+    if (!settingsStore.hasBudgetForMonth(yearMonth)) {
+      return null;
+    }
+
+    // Return the budget in EUR
     return settingsStore.getBudgetInEUR();
   });
 

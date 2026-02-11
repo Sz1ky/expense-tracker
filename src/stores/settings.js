@@ -84,6 +84,7 @@ export const useSettingsStore = defineStore("settings", () => {
         monthlyBudget: data.monthlyBudget || 3000,
       };
 
+      // Load the effective date from API
       budgetEffectiveFrom.value =
         data.budgetEffectiveFrom || new Date().toISOString().slice(0, 7);
     } catch (err) {
@@ -107,16 +108,26 @@ export const useSettingsStore = defineStore("settings", () => {
     try {
       const token = await authStore.getToken();
 
+      // When budget changes, set effective date to CURRENT month
+      const settingsToSave = {
+        currency: newSettings.currency,
+        monthlyBudget: newSettings.monthlyBudget,
+      };
+
+      // Only update effective date if budget is changing
+      if (newSettings.monthlyBudget !== settings.value.monthlyBudget) {
+        settingsToSave.budgetEffectiveFrom = new Date()
+          .toISOString()
+          .slice(0, 7);
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/settings`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          currency: newSettings.currency,
-          monthlyBudget: newSettings.monthlyBudget,
-        }),
+        body: JSON.stringify(settingsToSave),
       });
 
       if (!response.ok) {
@@ -134,7 +145,10 @@ export const useSettingsStore = defineStore("settings", () => {
         monthlyBudget: data.monthlyBudget,
       };
 
-      budgetEffectiveFrom.value = data.budgetEffectiveFrom;
+      // Update effective date if it was returned
+      if (data.budgetEffectiveFrom) {
+        budgetEffectiveFrom.value = data.budgetEffectiveFrom;
+      }
 
       return data;
     } catch (err) {

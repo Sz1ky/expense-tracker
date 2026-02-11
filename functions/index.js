@@ -333,7 +333,7 @@ app.get("/settings", verifyToken, async (req, res) => {
 app.put("/settings", verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { currency, monthlyBudget } = req.body;
+    const { currency, monthlyBudget, budgetEffectiveFrom } = req.body;
 
     // Validation
     if (!currency || typeof monthlyBudget !== "number") {
@@ -346,14 +346,21 @@ app.put("/settings", verifyToken, async (req, res) => {
     const settingsData = {
       currency,
       monthlyBudget: parseFloat(monthlyBudget.toFixed(2)),
-      budgetEffectiveFrom: new Date().toISOString().slice(0, 7),
       updatedAt: new Date().toISOString(),
     };
+
+    // Only update effective date if provided (when budget changes)
+    if (budgetEffectiveFrom) {
+      settingsData.budgetEffectiveFrom = budgetEffectiveFrom;
+    }
 
     const settingsRef = db.collection("settings").doc(userId);
     await settingsRef.set(settingsData, { merge: true });
 
-    res.status(200).json(settingsData);
+    // Get the full updated document
+    const updatedDoc = await settingsRef.get();
+
+    res.status(200).json(updatedDoc.data());
   } catch (error) {
     console.error("❌ Error updating settings:", error);
     res
